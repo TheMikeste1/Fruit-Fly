@@ -36,4 +36,5 @@ while video.isOpened():
             frame,
         )
     frame_num += 1
+video.release()
 print(f"Final frame number {frame_num - 1}")
