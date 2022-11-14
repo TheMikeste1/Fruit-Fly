@@ -1,7 +1,9 @@
+import enum
 import os
 import threading
 
 import kaggle
+import pandas as pd
 import torch
 import torchvision
 import zipfile
@@ -10,25 +12,9 @@ import frame_extraction
 from utils import *
 
 
-def extract_frames(verbose=True):
-    video_path = "data/ml-apples-1.mp4"
-    if not os.path.exists(video_path):
-        video_path = "data/tmp/ml-apples-1.mp4"
-    if not os.path.exists(video_path):
-        raise FileNotFoundError(
-            "Video data not found. Please download from "
-            "https://drive.google.com/file/d/1rUllqH4ub0sCb3yRRxXu7i9uTqhxln_W/view?usp=share_link"
-            f" and place in {video_path}"
-            "\nNote: I was considering implementing this through the gdrive package, "
-            "but it seems like effort. If you want to do it, feel free to implement it."
-        )
-    verbose_print = get_verbose_print(verbose)
-
-    verbose_print("Extracting frames from video. . .")
-    frame_extraction.extract_frames(
-        video_path, output_path="data/extracted_frames", verbose=verbose
-    )
-    verbose_print("Frame extraction complete.")
+class Categories(enum.Enum):
+    NO_APPLES = 0
+    HAS_APPLES = 1
 
 
 def download_kaggle_dataset(verbose=True):
@@ -73,8 +59,63 @@ def download_data(verbose=True):
         verbose_print("Data already downloaded.")
 
 
+def extract_frames(verbose=True):
+    video_path = "data/ml-apples-1.mp4"
+    if not os.path.exists(video_path):
+        video_path = "data/tmp/ml-apples-1.mp4"
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(
+            "Video data not found. Please download from "
+            "https://drive.google.com/file/d/1rUllqH4ub0sCb3yRRxXu7i9uTqhxln_W/view?usp=share_link"
+            f" and place in {video_path}"
+            "\nNote: I was considering implementing this through the gdrive package, "
+            "but it seems like effort. If you want to do it, feel free to implement it."
+        )
+    verbose_print = get_verbose_print(verbose)
+
+    verbose_print("Extracting frames from video. . .")
+    frame_extraction.extract_frames(
+        video_path, output_path="data/extracted_frames", verbose=verbose
+    )
+    verbose_print("Frame extraction complete.")
+
+
+def get_df_files():
+    df_frame_files = pd.DataFrame(
+        [
+            os.path.join(root, f)
+            for root, dirs, files in os.walk("data/extracted_frames")
+            for f in files
+            if f.lower().endswith(".jpg")
+        ],
+        columns=["img_path"],
+    )
+
+    df_frame_files["class"] = Categories.HAS_APPLES.value
+
+    df_whichtree = pd.DataFrame(
+        [
+            os.path.join(root, f)
+            for root, dirs, files in os.walk("data/whichtree")
+            for f in files
+            if f.lower().endswith(".jpg")
+        ],
+        columns=["img_path"],
+    )
+
+    df_whichtree["class"] = Categories.NO_APPLES.value
+
+    df_files = pd.concat([df_frame_files, df_whichtree], ignore_index=True).reset_index(
+        drop=True
+    )
+
+    return df_files
+
+
 def main():
     download_data()
+    df_files = get_df_files()
+    print(f"Total number of images: {len(df_files)}")
 
 
 if __name__ == "__main__":

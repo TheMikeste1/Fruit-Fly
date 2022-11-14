@@ -1,5 +1,6 @@
 kaggle
 opencv-python==4.6.0.66
+pandas
 --extra-index-url https://download.pytorch.org/whl/cu117
 torch~=1.13.0
 torchvision~=0.14.0
