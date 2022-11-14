@@ -18,6 +18,16 @@ class Categories(enum.Enum):
 
 
 def download_kaggle_dataset(verbose=True):
+    user_home = os.path.expanduser(f"~{os.path.sep}.kaggle{os.path.sep}kaggle.json")
+    if not os.path.exists(user_home) and "KAGGLE_CONFIG_DIR" not in os.environ.values():
+        # Since kaggle.json isn't in the home directory and
+        # the environment variable isn't set, it needs to be here.
+        assert os.path.exists(os.getcwd() + os.path.sep + "kaggle.json"), (
+            f"Please put your kaggle.json file either in {os.getcwd()}"
+            f" or {user_home} and try again"
+        )
+        os.environ["KAGGLE_CONFIG_DIR"] = os.getcwd()
+
     verbose_print = get_verbose_print(verbose)
 
     if not os.path.exists("data/tmp/whichtree.zip"):
