@@ -1,3 +1,5 @@
+import os
+
 import cv2
 
 OUTPUT_PATH = "data/"  # Path to directory of output images
@@ -13,6 +15,8 @@ if not video.isOpened():
     print("Unable to open video.")
     exit()
 
+if not os.path.exists(OUTPUT_PATH):
+    os.makedirs(OUTPUT_PATH)
 
 # Read frames and write it to a file
 frame_num = 0
