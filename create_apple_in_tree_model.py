@@ -4,9 +4,15 @@ import threading
 
 import cv2
 import kaggle
+from matplotlib import pyplot as plt
 import pandas as pd
+from sklearn.model_selection import train_test_split
 import torch
+import torch.nn as nn
+import torch.utils.data
+import torchinfo
 import torchvision
+from tqdm import tqdm
 import zipfile
 
 import frame_extraction
@@ -140,10 +146,170 @@ def get_df_files():
     return df_files
 
 
+def load_model(
+    image_size: [int],
+    num_outputs: int,
+    summarize: bool = True,
+    device: str | torch.device = None,
+):
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Loading model. . .", end="" if summarize else "\n")
+    model = torch.hub.load("pytorch/vision:v0.10.0", "mobilenet_v2", verbose=False)
+    # Replace the last layer with the number of classes we want
+    model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, num_outputs)
+    model.to(device)
+
+    if summarize:
+        print("\rAnalysing model. . .")
+        torchinfo.summary(model, input_size=(1, 3, *image_size), device=device)
+
+    return model
+
+
+def train(df_files: pd.DataFrame):
+    image_size = (2592, 1936)  # Original size of the images
+    scale_factor = min(*image_size) / 224
+    image_size = (image_size[0] // scale_factor, image_size[1] // scale_factor)
+    image_size = (int(image_size[0]), int(image_size[1]))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(image_size=image_size, num_outputs=2, device=device)
+
+    NUM_EPOCHS = 2
+    BATCH_SIZE = 16
+    INITIAL_LEARNING_RATE = 0.01
+    LR_SCHEDULER_KWARGS = {"gamma": 0.9}
+
+    train_files, valid_files = train_test_split(df_files, test_size=0.2)
+
+    print(f"Train Files: {len(train_files)}")
+    print(f"Validation Files: {len(valid_files)}")
+    assert (
+        train_files["class"].nunique() == 2
+    ), "Train files should at least one of each class"
+    assert (
+        valid_files["class"].nunique() == 2
+    ), "Validation files should at least one of each class"
+
+    transformer = torchvision.transforms.Compose(
+        [
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomRotation((-360, 360)),
+            torchvision.transforms.RandomApply(
+                [
+                    torchvision.transforms.RandomCrop(image_size),
+                ]
+            ),
+            torchvision.transforms.RandomApply(
+                [
+                    torchvision.transforms.RandomPerspective(),
+                ],
+            ),
+            torchvision.transforms.RandomApply(
+                [
+                    torchvision.transforms.RandomErasing(),
+                ],
+                p=0.8,
+            ),
+            torchvision.transforms.RandomApply(
+                [
+                    torchvision.transforms.ColorJitter(),
+                ],
+            ),
+            torchvision.transforms.Resize(image_size),
+            torchvision.transforms.ToTensor(),
+        ]
+    )
+
+    train_data = ImageDataset(train_files, transform=transformer, device=device)
+    valid_data = ImageDataset(valid_files, transform=transformer, device=device)
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_data, batch_size=BATCH_SIZE, shuffle=True
+    )
+    valid_loader = torch.utils.data.DataLoader(
+        dataset=valid_data, batch_size=BATCH_SIZE, shuffle=False
+    )
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=INITIAL_LEARNING_RATE)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        optimizer, **LR_SCHEDULER_KWARGS
+    )
+    criterion = nn.CrossEntropyLoss()
+
+    print(f"Running on {device}")
+
+    # keeping track of losses
+    train_losses = []
+    valid_losses = []
+
+    for epoch in tqdm(range(1, NUM_EPOCHS + 1)):
+        # keep track of training and validation loss
+        train_loss = 0.0
+        valid_loss = 0.0
+        # training the model
+        model.train()
+        for data, target in train_loader:
+            # move tensors to GPU
+            data = data.to(device)
+            target = target.to(device)
+
+            # clear the gradients of all optimized variables
+            optimizer.zero_grad()
+            # forward pass: compute predicted outputs by passing inputs to the model
+            output = model(data)
+            # calculate the batch loss
+            loss = criterion(output, target)
+            # backward pass: compute gradient of the loss wrt model parameters
+            loss.backward()
+            # perform a single optimization step (parameter update)
+            optimizer.step()
+            # update training loss
+            train_loss += loss.item() * data.size(0)
+        lr_scheduler.step()
+
+        # validate the model
+        model.eval()
+        for data, target in valid_loader:
+            data = data.to(device)
+            target = target.to(device)
+            output = model(data)
+            loss = criterion(output, target)
+
+            # update average validation loss
+            valid_loss += loss.item() * data.size(0)
+
+        # calculate average losses
+        train_loss = train_loss / len(train_loader.sampler)
+        valid_loss = valid_loss / len(valid_loader.sampler)
+        train_losses.append(train_loss)
+        valid_losses.append(valid_loss)
+
+        # print training/validation statistics
+        print(
+            f"Epoch: {epoch} "
+            f"\tTraining Loss: {train_loss:.6f} "
+            f"\tValidation Loss: {valid_loss:.6f}"
+        )
+
+    # Save
+    torch.save(model.state_dict(), "mobile_model_apple_trees.ckpt")
+
+    plt.plot(train_losses, label="Training loss")
+    plt.plot(valid_losses, label="Validation loss")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.legend(frameon=False)
+
+    plt.show()
+
+
 def main():
     download_data()
     df_files = get_df_files()
     print(f"Total number of images: {len(df_files)}")
+
+    train(df_files)
 
 
 if __name__ == "__main__":
