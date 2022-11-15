@@ -25,4 +25,4 @@ class ImageDataset(torch.utils.data.Dataset):
         image = image.to(self.device)
         if self.transform is not None:
             image = self.transform(image)
-        return image, label.to(self.device)
+        return image, label
