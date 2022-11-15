@@ -369,6 +369,7 @@ def main():
     test(model, df_test, image_size, device)
 
     if plt.get_fignums():
+        print(f"Waiting on figures {plt.get_fignums()}; Press any key to continue.")
         plt.waitforbuttonpress()
 
 
