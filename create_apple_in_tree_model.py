@@ -360,6 +360,10 @@ def main():
     model = load_model(image_size=image_size, num_outputs=2, device=device)
     # model.load_state_dict(torch.load("models/mobile_model_apple_trees_16its.pt"))
     df_train, df_test = train_test_split(df_files, test_size=0.1)
+    print(f"Test Files: {len(df_test)}")
+    assert (
+        df_test["class"].nunique() == 2
+    ), "Test files should at least one of each class"
 
     train(model, df_train, image_size, device)
     test(model, df_test, image_size, device)
