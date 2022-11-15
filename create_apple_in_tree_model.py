@@ -2,6 +2,7 @@ import enum
 import os
 import threading
 
+import cv2
 import kaggle
 import pandas as pd
 import torch
@@ -34,17 +35,17 @@ def download_kaggle_dataset(verbose=True):
         api = kaggle.KaggleApi()
         api.authenticate()
         verbose_print(
-            "Downloading data from "
+            "KAGGLE: Downloading data from "
             "https://www.kaggle.com/competitions/whichtree/data. . ."
         )
         api.competition_download_files("whichtree", path="data/tmp")
-        verbose_print("Kaggle download complete.", end=" ")
+        verbose_print("KAGGLE: Kaggle download complete.", end=" ")
     else:
-        verbose_print("Kaggle data already downloaded.", end=" ")
-    verbose_print("Unzipping data. . .")
+        verbose_print("KAGGLE: Kaggle data already downloaded.", end=" ")
+    verbose_print("KAGGLE: Unzipping data. . .")
     with zipfile.ZipFile("data/tmp/whichtree.zip", "r") as zip_ref:
         zip_ref.extractall("data/whichtree")
-    verbose_print("Unzip complete.")
+    verbose_print("KAGGLE: Unzip complete.")
 
 
 def download_data(verbose=True):
@@ -83,11 +84,28 @@ def extract_frames(verbose=True):
         )
     verbose_print = get_verbose_print(verbose)
 
-    verbose_print("Extracting frames from video. . .")
+    verbose_print("FRAMES: Extracting frames from video. . .")
     frame_extraction.extract_frames(
         video_path, output_path="data/extracted_frames", verbose=verbose
     )
-    verbose_print("Frame extraction complete.")
+    verbose_print("FRAMES: Frame extraction complete.")
+
+    # Let's chop off the top and bottom, since most apples are in the center.
+    # That way we can convert them into the desired size more easily.
+    verbose_print("FRAMES: Processing frames. . .")
+    for root, dirs, files in os.walk("data/extracted_frames"):
+        for file_path in files:
+            if not file_path.lower().endswith(".jpg"):
+                continue
+            full_path = os.path.join(root, file_path)
+            img = cv2.imread(full_path)
+            min_axis = min(img.shape[:2])
+            img = img[
+                (img.shape[0] - min_axis) // 2 : (img.shape[0] + min_axis) // 2,
+                (img.shape[1] - min_axis) // 2 : (img.shape[1] + min_axis) // 2,
+            ]
+            cv2.imwrite(full_path, img)
+    verbose_print("FRAMES: Done processing frames.")
 
 
 def get_df_files():
