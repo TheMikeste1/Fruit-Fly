@@ -247,6 +247,8 @@ def train(df_files: pd.DataFrame):
     train_losses = []
     valid_losses = []
 
+    if not os.path.exists("models"):
+        os.mkdir("models")
     for epoch in tqdm(range(1, NUM_EPOCHS + 1)):
         # keep track of training and validation loss
         train_loss = 0.0
@@ -271,7 +273,7 @@ def train(df_files: pd.DataFrame):
             # update training loss
             train_loss += loss.item() * data.size(0)
         lr_scheduler.step()
-        torch.save(model.state_dict(), f"mobile_model_apple_trees_{epoch}its.pt")
+        torch.save(model.state_dict(), f"models/mobile_model_apple_trees_{epoch}its.pt")
 
         # validate the model
         model.eval()
