@@ -1,12 +1,18 @@
 import enum
 import os
 import threading
+from datetime import datetime
 
 import cv2
 import kaggle
 from matplotlib import pyplot as plt
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    precision_recall_fscore_support,
+)
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -167,16 +173,9 @@ def load_model(
     return model
 
 
-def train(df_files: pd.DataFrame):
-    image_size = (2592, 1936)  # Original size of the images
-    scale_factor = min(*image_size) / 224
-    image_size = (image_size[0] // scale_factor, image_size[1] // scale_factor)
-    image_size = (int(image_size[0]), int(image_size[1]))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(image_size=image_size, num_outputs=2, device=device)
-
+def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.device):
     NUM_EPOCHS = 16
-    BATCH_SIZE = 16
+    BATCH_SIZE = 32
     INITIAL_LEARNING_RATE = 0.01
     LR_SCHEDULER_KWARGS = {"gamma": 0.9}
 
@@ -249,6 +248,7 @@ def train(df_files: pd.DataFrame):
 
     if not os.path.exists("models"):
         os.mkdir("models")
+    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     for epoch in tqdm(range(1, NUM_EPOCHS + 1)):
         # keep track of training and validation loss
         train_loss = 0.0
@@ -273,7 +273,10 @@ def train(df_files: pd.DataFrame):
             # update training loss
             train_loss += loss.item() * data.size(0)
         lr_scheduler.step()
-        torch.save(model.state_dict(), f"models/mobile_model_apple_trees_{epoch}its.pt")
+        torch.save(
+            model.state_dict(),
+            f"models/mobile_model_apple_trees_{epoch}its_{date_str}.pt",
+        )
 
         # validate the model
         model.eval()
@@ -305,7 +308,43 @@ def train(df_files: pd.DataFrame):
     plt.ylabel("Loss")
     plt.legend(frameon=False)
 
-    plt.show()
+    plt.show(block=False)
+
+
+def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.device):
+    BATCH_SIZE = 16
+
+    transformer = torchvision.transforms.Compose(
+        [
+            torchvision.transforms.Resize(image_size),
+            torchvision.transforms.ConvertImageDtype(torch.float32),
+        ]
+    )
+    test_data = ImageDataset(df_files, transform=transformer, device=device)
+    test_loader = torch.utils.data.DataLoader(
+        dataset=test_data, batch_size=BATCH_SIZE, shuffle=False
+    )
+
+    model.eval()
+    targets = []
+    predictions = []
+    print("Beginning Testing. . .")
+    with torch.no_grad():
+        for data, target in test_loader:
+            targets.extend(target.cpu().numpy())
+            data = data.to(device)
+            output = model(data)
+            _, predicted = torch.max(output.data, 1)
+            predictions.extend(predicted.cpu().numpy())
+    p, r, f, s = precision_recall_fscore_support(targets, predictions)
+    print(f"Precision: {p}")
+    print(f"Recall: {r}")
+    print(f"F1: {f}")
+    print(f"Support: {s}")
+    print(f"Accuracy: {accuracy_score(targets, predictions)}")
+    # Confusion matrix
+    cm = confusion_matrix(targets, predictions)
+    print(cm)
 
 
 def main():
@@ -313,7 +352,20 @@ def main():
     df_files = get_df_files()
     print(f"Total number of images: {len(df_files)}")
 
-    train(df_files)
+    image_size = (2592, 1936)  # Original size of the images
+    scale_factor = min(*image_size) / 224
+    image_size = (image_size[0] // scale_factor, image_size[1] // scale_factor)
+    image_size = (int(image_size[0]), int(image_size[1]))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(image_size=image_size, num_outputs=2, device=device)
+    # model.load_state_dict(torch.load("models/mobile_model_apple_trees_16its.pt"))
+    df_train, df_test = train_test_split(df_files, test_size=0.1)
+
+    train(model, df_train, image_size, device)
+    test(model, df_test, image_size, device)
+
+    if plt.get_fignums():
+        plt.waitforbuttonpress()
 
 
 if __name__ == "__main__":
