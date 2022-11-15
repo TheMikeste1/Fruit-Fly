@@ -175,7 +175,7 @@ def train(df_files: pd.DataFrame):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(image_size=image_size, num_outputs=2, device=device)
 
-    NUM_EPOCHS = 2
+    NUM_EPOCHS = 16
     BATCH_SIZE = 16
     INITIAL_LEARNING_RATE = 0.01
     LR_SCHEDULER_KWARGS = {"gamma": 0.9}
@@ -206,7 +206,7 @@ def train(df_files: pd.DataFrame):
                 ],
                 p=0.8,
             ),
-            torchvision.transforms.RandomRotation((-180, 180)),
+            torchvision.transforms.RandomRotation((-45, 45)),
             torchvision.transforms.RandomApply(
                 [
                     torchvision.transforms.RandomCrop(image_size),
@@ -271,6 +271,7 @@ def train(df_files: pd.DataFrame):
             # update training loss
             train_loss += loss.item() * data.size(0)
         lr_scheduler.step()
+        torch.save(model.state_dict(), f"mobile_model_apple_trees_{epoch}its.pt")
 
         # validate the model
         model.eval()
@@ -295,9 +296,6 @@ def train(df_files: pd.DataFrame):
             f"\tTraining Loss: {train_loss:.6f} "
             f"\tValidation Loss: {valid_loss:.6f}"
         )
-
-    # Save
-    torch.save(model.state_dict(), "mobile_model_apple_trees.ckpt")
 
     plt.plot(train_losses, label="Training loss")
     plt.plot(valid_losses, label="Validation loss")
