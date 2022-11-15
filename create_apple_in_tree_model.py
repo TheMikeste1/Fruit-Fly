@@ -191,11 +191,22 @@ def train(df_files: pd.DataFrame):
         valid_files["class"].nunique() == 2
     ), "Validation files should at least one of each class"
 
+    # Print out the number of each class in the training and validation sets
+    print("Train Files:")
+    print(train_files["class"].value_counts())
+    print("Validation Files:")
+    print(valid_files["class"].value_counts())
+
     transformer = torchvision.transforms.Compose(
         [
-            torchvision.transforms.ToPILImage(),
             torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.RandomRotation((-360, 360)),
+            torchvision.transforms.RandomApply(
+                [
+                    torchvision.transforms.RandomErasing(),
+                ],
+                p=0.8,
+            ),
+            torchvision.transforms.RandomRotation((-180, 180)),
             torchvision.transforms.RandomApply(
                 [
                     torchvision.transforms.RandomCrop(image_size),
@@ -208,20 +219,13 @@ def train(df_files: pd.DataFrame):
             ),
             torchvision.transforms.RandomApply(
                 [
-                    torchvision.transforms.RandomErasing(),
-                ],
-                p=0.8,
-            ),
-            torchvision.transforms.RandomApply(
-                [
                     torchvision.transforms.ColorJitter(),
                 ],
             ),
             torchvision.transforms.Resize(image_size),
-            torchvision.transforms.ToTensor(),
+            torchvision.transforms.ConvertImageDtype(torch.float32),
         ]
     )
-
     train_data = ImageDataset(train_files, transform=transformer, device=device)
     valid_data = ImageDataset(valid_files, transform=transformer, device=device)
     train_loader = torch.utils.data.DataLoader(
