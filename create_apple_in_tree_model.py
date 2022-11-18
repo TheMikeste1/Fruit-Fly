@@ -13,6 +13,7 @@ from sklearn.metrics import (
     confusion_matrix,
     precision_recall_fscore_support,
 )
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -54,7 +55,7 @@ def download_kaggle_dataset(verbose=True):
         verbose_print("KAGGLE: Kaggle download complete.", end=" ")
     else:
         verbose_print("KAGGLE: Kaggle data already downloaded.", end=" ")
-    verbose_print("KAGGLE: Unzipping data. . .")
+    verbose_print("Unzipping data. . .")
     with zipfile.ZipFile("data/tmp/whichtree.zip", "r") as zip_ref:
         zip_ref.extractall("data/whichtree")
     verbose_print("KAGGLE: Unzip complete.")
@@ -312,7 +313,7 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
 
 
 def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.device):
-    BATCH_SIZE = 16
+    BATCH_SIZE = 32
 
     transformer = torchvision.transforms.Compose(
         [
@@ -336,7 +337,7 @@ def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.d
             output = model(data)
             _, predicted = torch.max(output.data, 1)
             predictions.extend(predicted.cpu().numpy())
-    p, r, f, s = precision_recall_fscore_support(targets, predictions)
+    p, r, f, s = precision_recall_fscore_support(targets, predictions, zero_division=0)
     print(f"Precision: {p}")
     print(f"Recall: {r}")
     print(f"F1: {f}")
@@ -344,7 +345,19 @@ def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.d
     print(f"Accuracy: {accuracy_score(targets, predictions)}")
     # Confusion matrix
     cm = confusion_matrix(targets, predictions)
-    print(cm)
+    class_names = ["No Apple", "Has Apple"]
+    df_confusion_matrix = pd.DataFrame(cm, index=class_names, columns=class_names)
+    print(df_confusion_matrix)
+    plot = sns.heatmap(
+        df_confusion_matrix,
+        annot=True,
+        fmt="d",
+        cmap=sns.color_palette("mako", as_cmap=True),
+    )
+    plot.set_title("Confusion Matrix")
+    plot.set_xlabel("Predicted Label")
+    plot.set_ylabel("True Label")
+    plt.show(block=False)
 
 
 def main():
@@ -373,5 +386,26 @@ def main():
         plt.waitforbuttonpress()
 
 
+def load_and_predict():
+    image_size = (2592, 1936)  # Original size of the images
+    scale_factor = min(*image_size) / 224
+    image_size = (image_size[0] // scale_factor, image_size[1] // scale_factor)
+    image_size = (int(image_size[0]), int(image_size[1]))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(
+        image_size=image_size, num_outputs=2, device=device, summarize=False
+    )
+    model.load_state_dict(
+        torch.load("models/mobile_model_apple_trees_16its_2022-11-15_10-32-06.pt")
+    )
+    df_files = get_df_files()
+    test(model, df_files, image_size, device)
+
+    if plt.get_fignums():
+        print(f"Waiting on figures {plt.get_fignums()}; Press any key to continue.")
+        plt.waitforbuttonpress()
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    load_and_predict()
