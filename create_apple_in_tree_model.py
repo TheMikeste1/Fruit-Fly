@@ -331,7 +331,7 @@ def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.d
     predictions = []
     print("Beginning Testing. . .")
     with torch.no_grad():
-        for data, target in test_loader:
+        for data, target in tqdm(test_loader):
             targets.extend(target.cpu().numpy())
             data = data.to(device)
             output = model(data)
