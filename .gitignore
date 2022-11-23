@@ -307,3 +307,7 @@ cython_debug/
 
 
 /.idea/
+/data/
+kaggle.json
+/runs/*
+#!/runs/keep/
