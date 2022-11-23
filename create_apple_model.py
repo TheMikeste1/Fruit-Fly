@@ -299,7 +299,9 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
             optimizer.step()
             # update training loss
             train_loss += loss.item() * data.size(0)
-            summary_writer.add_scalar("train_loss", loss.item(), epoch)
+
+        train_loss = train_loss / len(train_loader.sampler)
+        summary_writer.add_scalar("train_loss", train_loss, epoch)
         lr_scheduler.step()
         torch.save(
             model.state_dict(),
@@ -316,11 +318,10 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
 
             # update average validation loss
             valid_loss += loss.item() * data.size(0)
-            summary_writer.add_scalar("valid_loss", loss.item(), epoch)
 
         # calculate average losses
-        train_loss = train_loss / len(train_loader.sampler)
         valid_loss = valid_loss / len(valid_loader.sampler)
+        summary_writer.add_scalar("valid_loss", valid_loss, epoch)
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)
 
