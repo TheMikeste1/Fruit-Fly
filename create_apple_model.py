@@ -143,7 +143,7 @@ def download_data(verbose=True):
         verbose_print("Data already downloaded.")
 
 
-def get_df_files():
+def get_df_mendeley():
     df_mendeley = pd.DataFrame(
         [
             os.path.join(root, f)
@@ -158,7 +158,10 @@ def get_df_files():
     df_mendeley.loc[
         df_mendeley["img_path"].str.contains("Apple"), "class"
     ] = Categories.APPLE.value
+    return df_mendeley
 
+
+def get_df_fruits360():
     df_fruits360 = pd.DataFrame(
         [
             os.path.join(root, f)
@@ -173,6 +176,12 @@ def get_df_files():
     df_fruits360.loc[
         df_fruits360["img_path"].str.contains("apple"), "class"
     ] = Categories.APPLE.value
+    return df_fruits360
+
+
+def get_df_files():
+    df_mendeley = get_df_mendeley()
+    df_fruits360 = get_df_fruits360()
 
     df_files = pd.concat([df_mendeley, df_fruits360], ignore_index=True).reset_index(
         drop=True
@@ -202,7 +211,13 @@ def load_model(
     return model
 
 
-def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.device):
+def train(
+    model,
+    df_files: pd.DataFrame,
+    image_size: [int],
+    device: str | torch.device,
+    name: str = "",
+):
     NUM_EPOCHS = 16
     BATCH_SIZE = 32
     INITIAL_LEARNING_RATE = 0.01
@@ -274,7 +289,7 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
     if not os.path.exists("models"):
         os.mkdir("models")
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    summary_writer = SummaryWriter(f"runs/{date_str}")
+    summary_writer = SummaryWriter(f"runs/{name}{date_str}")
     for epoch in tqdm(range(1, NUM_EPOCHS + 1)):
         # keep track of training and validation loss
         train_loss = 0.0
@@ -305,7 +320,7 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
         lr_scheduler.step()
         torch.save(
             model.state_dict(),
-            f"models/mobile_model_apple_trees_{epoch}its_{date_str}.pt",
+            f"models/{name}{epoch}its_{date_str}.pt",
         )
 
         # validate the model
@@ -334,7 +349,13 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
     plt.show(block=False)
 
 
-def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.device):
+def test(
+    model,
+    df_files: pd.DataFrame,
+    image_size: [int],
+    device: str | torch.device,
+    name: str = "",
+):
     BATCH_SIZE = 32
 
     transformer = torchvision.transforms.Compose(
@@ -377,15 +398,19 @@ def test(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.d
         fmt="d",
         cmap=sns.color_palette("mako", as_cmap=True),
     )
-    plot.set_title("Confusion Matrix")
+    plot.set_title("Confusion Matrix: " + name)
     plot.set_xlabel("Predicted Label")
     plot.set_ylabel("True Label")
+    plt.savefig(f"confusion_matrix_{name}.eps", format="eps")
     plt.show(block=False)
 
 
 def main():
     download_data()
+    name = "all_files_"
     df_files = get_df_files()
+    # df_files = get_df_mendeley()
+    # df_files = get_df_fruits360()
     print(f"Total number of images: {len(df_files)}")
 
     image_size = (224, 224)
@@ -398,7 +423,7 @@ def main():
         df_test["class"].nunique() == 2
     ), "Test files should at least one of each class"
 
-    train(model, df_train, image_size, device)
+    train(model, df_train, image_size, device, name=name)
     test(model, df_test, image_size, device)
 
     if plt.get_fignums():
@@ -412,11 +437,22 @@ def load_and_predict():
     model = load_model(
         image_size=image_size, num_outputs=2, device=device, summarize=False
     )
-    model.load_state_dict(
-        torch.load("models/mobile_model_apples_16its_2022-11-15_10-32-06.pt")
-    )
+    model.load_state_dict(torch.load("models/all_files_16its_2022-11-22_18-33-45.pt"))
     df_files = get_df_files()
-    test(model, df_files, image_size, device)
+    # df_files = get_df_mendeley()
+    # df_files = get_df_fruits360()
+    # df_files = pd.DataFrame(
+    #     [
+    #         os.path.join(root, f)
+    #         for root, dirs, files in os.walk("data/hands_holding_apples")
+    #         for f in files
+    #         if f.lower().endswith(".jpg")
+    #     ],
+    #     columns=["img_path"],
+    # )
+    df_files["class"] = Categories.APPLE.value
+
+    test(model, df_files, image_size, device, name="All Files on Dataset")
 
     if plt.get_fignums():
         print(f"Waiting on figures {plt.get_fignums()}; Press any key to continue.")
