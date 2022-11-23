@@ -289,7 +289,7 @@ def train(
     if not os.path.exists("models"):
         os.mkdir("models")
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    summary_writer = SummaryWriter(f"runs/{name}{date_str}")
+    summary_writer = SummaryWriter(f"runs/detect_apple/{name}{date_str}")
     for epoch in tqdm(range(1, NUM_EPOCHS + 1)):
         # keep track of training and validation loss
         train_loss = 0.0
@@ -320,7 +320,7 @@ def train(
         lr_scheduler.step()
         torch.save(
             model.state_dict(),
-            f"models/{name}{epoch}its_{date_str}.pt",
+            f"models/detect_apple/{name}{epoch}its_{date_str}.pt",
         )
 
         # validate the model
@@ -416,7 +416,7 @@ def main():
     image_size = (224, 224)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(image_size=image_size, num_outputs=2, device=device)
-    # model.load_state_dict(torch.load("models/mobile_model_apple_trees_16its.pt"))
+
     df_train, df_test = train_test_split(df_files, test_size=0.1)
     print(f"Test Files: {len(df_test)}")
     assert (
@@ -437,7 +437,8 @@ def load_and_predict():
     model = load_model(
         image_size=image_size, num_outputs=2, device=device, summarize=False
     )
-    model.load_state_dict(torch.load("models/all_files_16its_2022-11-22_18-33-45.pt"))
+    model.load_state_dict(torch.load(
+        "models/detect_apple/all_files_16its_2022-11-22_18-33-45.pt"))
     df_files = get_df_files()
     # df_files = get_df_mendeley()
     # df_files = get_df_fruits360()

@@ -90,7 +90,8 @@ def extract_frames(verbose=True):
     if not os.path.exists(video_path):
         raise FileNotFoundError(
             "Video data not found. Please download from "
-            "https://drive.google.com/file/d/1rUllqH4ub0sCb3yRRxXu7i9uTqhxln_W/view?usp=share_link"
+            "https://drive.google.com/file/d/1rUllqH4ub0sCb3yRRxXu7i9uTqhxln_W/view"
+            "?usp=share_link"
             f" and place in {video_path}"
             "\nNote: I was considering implementing this through the gdrive package, "
             "but it seems like effort. If you want to do it, feel free to implement it."
@@ -276,7 +277,8 @@ def train(model, df_files: pd.DataFrame, image_size: [int], device: str | torch.
         lr_scheduler.step()
         torch.save(
             model.state_dict(),
-            f"models/mobile_model_apple_trees_{epoch}its_{date_str}.pt",
+            f"models/detect_apple_tree/mobile_model_apple_trees_{epoch}its_"
+            f"{date_str}.pt",
         )
 
         # validate the model
@@ -396,7 +398,10 @@ def load_and_predict():
         image_size=image_size, num_outputs=2, device=device, summarize=False
     )
     model.load_state_dict(
-        torch.load("models/mobile_model_apple_trees_16its_2022-11-15_10-32-06.pt")
+        torch.load(
+            "models/detect_apple_tree/mobile_model_apple_trees_16its_2022-11-15_10-32"
+            "-06.pt"
+        )
     )
     df_files = get_df_files()
     test(model, df_files, image_size, device)
