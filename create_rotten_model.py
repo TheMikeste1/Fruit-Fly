@@ -326,7 +326,7 @@ def train(
         lr_scheduler.step()
         torch.save(
             model.state_dict(),
-            f"models/{name}{epoch}its_{date_str}.pt",
+            f"models/detect_rotten/{name}{epoch}its_{date_str}.pt",
         )
 
         # validate the model
