@@ -1,3 +1,4 @@
 curated_360_cascade: Doesn't seem to work.
 curated_set_cascade: Seems to work best so far.
+curated_set_cascade_2.0: Less false-positives that curated_set_cascade, but has more difficulty detecting the apple.
 fruits360_mendeley_cascade: Doesn't seem to work.
