@@ -14,7 +14,7 @@ w, h = 360, 240
 drone_obj = tello.Tello()
 drone_obj.connect()
 time.sleep(0.25)
-print("Battery: ", drone_obj.get_battery())
+print(f"Battery: {drone_obj.get_battery()}%")
 time.sleep(0.25)
 # start streaming the camera feed
 drone_obj.streamon()
