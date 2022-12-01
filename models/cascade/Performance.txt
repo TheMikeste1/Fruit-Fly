@@ -1,0 +1,3 @@
+curated_360_cascade: Doesn't seem to work.
+curated_set_cascade: Seems to work best so far.
+fruits360_mendeley_cascade: Doesn't seem to work.
