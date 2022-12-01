@@ -3,6 +3,8 @@ import numpy as np
 from djitellopy import tello
 import time
 
+from utils import VideoWriter
+
 fbRange = [6200, 6800]
 pid = [0.4, 0.4, 0]
 pError = 0
@@ -11,18 +13,22 @@ w, h = 360, 240
 # connect to the drone first
 drone_obj = tello.Tello()
 drone_obj.connect()
-print(drone_obj.get_battery())
+time.sleep(0.25)
+print("Battery: ", drone_obj.get_battery())
+time.sleep(0.25)
 # start streaming the camera feed
 drone_obj.streamon()
+time.sleep(0.25)
 # take off the drone for a while(2.5 seconds) with speed of 25
 drone_obj.takeoff()
-drone_obj.send_rc_control(0, 0, 1, 0)
+time.sleep(0.25)
+drone_obj.send_rc_control(0, 0, 2, 0)
 time.sleep(2.5)
 
 
 def findFace(img):
     face_cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        "./models/cascade/curated_set_cascade.xml"
     )
     imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(imgGray, 1.2, 8)
@@ -84,12 +90,21 @@ def trackFace(info, w, pid, pError):
 
 
 # cap = cv2.VideoCapture(0)
+writer = VideoWriter(
+    30,
+    w,
+    h,
+    "demo.mp4",
+)
+
 try:
     while True:
         img = drone_obj.get_frame_read().frame
         # _, img = cap.read()
         img = cv2.resize(img, (w, h))
         img, info = findFace(img)
+        image_to_write = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        writer.write(image_to_write)
         pError = trackFace(info, w, pid, pError)
         print("Center:", info[0], "Area:", info[1])
         cv2.imshow("Output", img)
@@ -97,6 +112,6 @@ try:
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 finally:
+    writer.close()
     drone_obj.land()
     drone_obj.streamoff()
-
