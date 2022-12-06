@@ -26,17 +26,13 @@ drone_obj.send_rc_control(0, 0, 2, 0)
 time.sleep(2.5)
 
 
-def findFace(img):
-    face_cascade = cv2.CascadeClassifier(
-        "./models/cascade/curated_set_cascade.xml"
-    )
-    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(imgGray, 1.2, 8)
+def find_apple(img):
+    apple_cascade = cv2.CascadeClassifier("./models/cascade/curated_set_cascade.xml")
+    apples = apple_cascade.detectMultiScale(img)
+    apple_centers = []
+    apple_areas = []
 
-    myFaceListC = []
-    myFaceListArea = []
-
-    for (x, y, w, h) in faces:
+    for (x, y, w, h) in apples:
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 0, 255), 2)
         # get centerx and centery values
         cx = x + w // 2
@@ -46,46 +42,47 @@ def findFace(img):
         # draw a circle where the center is
         cv2.circle(img, (cx, cy), 5, (0, 255, 0), cv2.FILLED)
         # append these values to the lists we created above
-        myFaceListC.append([cx, cy])
-        myFaceListArea.append(area)
+        apple_centers.append([cx, cy])
+        apple_areas.append(area)
     # get the index of the max area detected over coming frame
     # so that focus on the bigger face if there are multiple faces
-    if len(myFaceListArea) != 0:
-        i = myFaceListArea.index(max(myFaceListArea))
-        return img, [myFaceListC[i], myFaceListArea[i]]
+    if apple_areas:
+        i = apple_areas.index(max(apple_areas))
+        return img, [apple_centers[i], apple_areas[i]]
     else:
         return img, [[0, 0], 0]
 
 
-def trackFace(info, w, pid, pError):
-    fb = 0  # forward backward velocity
+def track_apple(info, w, pid, p_error, area_range):
+    forward_vel = 0
     area = info[1]  # area value
     x, y = info[0]  # centerx and centery values
 
     error = x - w // 2  # what is the difference between our object and the center
-    speed = pid[0] * error + pid[1] * (
-        error - pError
+    yaw_vel = pid[0] * error + pid[1] * (
+        error - p_error
     )  # calculate yaw value with using PID method
-    speed = int(np.clip(speed, -100, 100))
+    yaw_vel = int(np.clip(yaw_vel, -100, 100))
 
     if (
-        area > fbRange[0] and area < fbRange[1]
-    ):  # if the object is in the range we indicated [6200,6800], do not move
-        fb = 0
-    elif area > fbRange[1]:  # if it is too close, move backward
-        fb = -20
+        area_range[0] < area < area_range[1]
+    ):  # if the object is in the range we indicated, do not move
+        forward_vel = 0
+    elif area > area_range[1]:  # if it is too close, move backward
+        forward_vel = -20
     elif (
-        area < fbRange[0] and area != 0
-    ):  # if it is too far and if it detects a face, move forward
-        fb = 20
+        area < area_range[0] and area != 0
+    ):  # if it is too far and if it detects an apple, move forward
+        forward_vel = 20
 
-    if x == 0:  # if it detects no face, both speed and error will be 0, so the drone
-        # would not rotate
-        speed = 0
+    if (
+        x == 0
+    ):  # if it does not detect an apple, both speed and error should be 0 so the drone
+        # will not rotate
+        yaw_vel = 0
         error = 0
 
-    print(speed, fb)
-    drone_obj.send_rc_control(0, fb, 0, speed)
+    drone_obj.send_rc_control(0, forward_vel, 0, yaw_vel)
     return error
 
 
@@ -102,10 +99,10 @@ try:
         img = drone_obj.get_frame_read().frame
         # _, img = cap.read()
         img = cv2.resize(img, (w, h))
-        img, info = findFace(img)
+        img, info = find_apple(img)
         image_to_write = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         writer.write(image_to_write)
-        pError = trackFace(info, w, pid, pError)
+        pError = track_apple(info, w, pid, pError, fbRange)
         print("Center:", info[0], "Area:", info[1])
         cv2.imshow("Output", img)
         # if we click 'q' then land the drone
