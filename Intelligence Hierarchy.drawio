@@ -1,1 +1,31 @@
-<mxfile host="app.diagrams.net" modified="2022-12-15T21:14:40.480Z" agent="5.0 (Windows)" version="20.7.3" etag="oFlHfzi3enn5rUgvES2U" type="github"><diagram id="Xb_A9-0jjPsdYRsE96eR">UzV2zq1wL0osyPDNT0nNUTV2VTV2LsrPL4GwciucU3NyVI0MMlNUjV1UjYwMgFjVyA2HrCFY1qAgsSg1rwSLBiADYTaQg2Y1AA==</diagram></mxfile>
+<mxfile host="app.diagrams.net" modified="2022-12-15T21:18:05.476Z" agent="5.0 (Windows)" version="20.7.3" etag="Qx_X10hzxU_BwpG9SAgd" type="github">
+  <diagram id="7JRRa1Dkf_-6LRbb3MUD" name="Page-1">
+    <mxGraphModel dx="1434" dy="782" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=18;" edge="1" parent="1" source="huMU4PHEK6Nmot-dOmU4-1" target="huMU4PHEK6Nmot-dOmU4-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-1" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Detect apple&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=18;" edge="1" parent="1" source="huMU4PHEK6Nmot-dOmU4-3" target="huMU4PHEK6Nmot-dOmU4-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-3" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Calculate position&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=18;" edge="1" parent="1" source="huMU4PHEK6Nmot-dOmU4-5" target="huMU4PHEK6Nmot-dOmU4-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-5" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Move towards&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="huMU4PHEK6Nmot-dOmU4-7" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;Detect ripeness&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="450" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
