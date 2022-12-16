@@ -231,6 +231,7 @@ class WebcamTello(Tello):
 
 
 def main():
+    # Swap this line to use the real drone
     # drone = Tello()
     drone = WebcamTello()
     fruit_fly(drone)
